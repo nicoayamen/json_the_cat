@@ -1,35 +1,32 @@
 const request = require('request');
 
-const arg = process.argv.slice(2);
-const breed = arg[0];
+const fetchBreedDescription = function(breedName, callback) {
 
-request(`https://api.thecatapi.com/v1/breeds/search?q=${breed}`, (error, response, body) => {
-
-  // checks to see error, depending on server or unexpected status code, good for if url is broken or typo'd
-  if (error) {
-    console.error("Error: ", error);
-  }
-  else if (response && response.statusCode != 200) {
-    console.log(`Unexpected status code: ${response.statusCode}. Body: ${body}`);
-  }
-
-  else {
-    try {
-      // to not pass error into data
-      const data = JSON.parse(body);
-      // if data array is empty
-      if (data.length === 0) {
-        console.log("Breed not found!");
-      }
-      // if CL arg is a breed, return the description
-      else {
-        console.log(data[0].description);
+  request(`https://api.thecatapi.com/v1/breeds/search?q=${breedName}`, (error, response, body) => {
+    if (error) {
+      // Call the callback with the error and null description
+      callback(error, null);
+    } else if (response && response.statusCode !== 200) {
+      // Call the callback with unexpected status code error and null description
+      callback(`Unexpected status code: ${response.statusCode}. Body: ${body}`, null);
+    } else {
+      try {
+        const data = JSON.parse(body);
+        if (data.length === 0) {
+          // Call the callback with breed not found error and null description
+          callback("Breed not found!", null);
+        } else {
+          // Call the callback with null error and the description from body
+          callback(null, data[0].description);
+        }
+      } catch (e) {
+        // Call the callback with parsing error and null description
+        callback(`Failed to parse response body: ${e.message}`, null);
       }
     }
-    // catch case error if all else fails with JSON.parse so it can fail gracefully. Thanks larry
-    catch (e) {
-      console.error("Failed to parse response body: ", e.message);
-    }
-  }
-  
-});
+  });
+};
+
+module.exports = {
+  fetchBreedDescription,
+};
